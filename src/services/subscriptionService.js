@@ -15,7 +15,9 @@ function createError(message, statusCode) {
 }
 
 function assertValid(check) {
-    if (!check.valid) throw createError(check.error, 400);
+    if (!check.valid) {
+        throw createError(check.error, 400);
+    }
 }
 
 async function subscribe(email, repo) {
@@ -26,10 +28,14 @@ async function subscribe(email, repo) {
     const normalizedRepo = repo.trim();
 
     const existing = await subscriptionRepo.findByEmailAndRepo(normalizedEmail, normalizedRepo);
-    if (existing) throw createError(SUBSCRIPTION_MESSAGES.ALREADY_SUBSCRIBED, 409);
+    if (existing) {
+        throw createError(SUBSCRIPTION_MESSAGES.ALREADY_SUBSCRIBED, 409);
+    }
 
     const repoExists = await githubService.checkRepoExists(normalizedRepo);
-    if (!repoExists) throw createError(SUBSCRIPTION_MESSAGES.REPO_NOT_FOUND, 404);
+    if (!repoExists) {
+        throw createError(SUBSCRIPTION_MESSAGES.REPO_NOT_FOUND, 404);
+    }
 
     const latestRelease = await githubService.getLatestRelease(normalizedRepo);
     const lastSeenTag = latestRelease ? latestRelease.tag : null;
@@ -69,7 +75,9 @@ async function confirmSubscription(token) {
     assertValid(validateToken(token));
 
     const subscription = await subscriptionRepo.findByConfirmToken(token);
-    if (!subscription) throw createError(SUBSCRIPTION_MESSAGES.TOKEN_NOT_FOUND, 404);
+    if (!subscription) {
+        throw createError(SUBSCRIPTION_MESSAGES.TOKEN_NOT_FOUND, 404);
+    }
 
     if (subscription.confirmed) {
         return { message: SUBSCRIPTION_MESSAGES.ALREADY_CONFIRMED };
@@ -83,7 +91,9 @@ async function unsubscribe(token) {
     assertValid(validateToken(token));
 
     const subscription = await subscriptionRepo.findByUnsubscribeToken(token);
-    if (!subscription) throw createError(SUBSCRIPTION_MESSAGES.TOKEN_NOT_FOUND, 404);
+    if (!subscription) {
+        throw createError(SUBSCRIPTION_MESSAGES.TOKEN_NOT_FOUND, 404);
+    }
 
     if (!subscription.confirmed) {
         throw createError(SUBSCRIPTION_MESSAGES.NOT_CONFIRMED, 409);
