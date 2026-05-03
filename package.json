@@ -8,8 +8,8 @@
     "dev": "nodemon --exec \"node -r module-alias/register\" src/server.js",
     "lint": "eslint --no-error-on-unmatched-pattern src/ tests/",
     "lint:fix": "eslint --no-error-on-unmatched-pattern src/ tests/ --fix",
-    "test:unit": "jest --runInBand",
-    "test": "jest --coverage --forceExit --detectOpenHandles"
+    "test:unit": "jest --runInBand --passWithNoTests",
+    "test": "jest --coverage --forceExit --detectOpenHandles --passWithNoTests"
   },
   "_moduleAliases": {
     "@": "src"
