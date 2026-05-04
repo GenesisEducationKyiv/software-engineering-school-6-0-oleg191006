@@ -3,6 +3,9 @@ const jest = require('eslint-plugin-jest');
 const globals = require('globals');
 
 module.exports = [
+    {
+        ignores: ['coverage/**'],
+    },
     js.configs.recommended,
     {
         files: ['**/*.js'],
@@ -46,7 +49,7 @@ module.exports = [
                     avoidEscape: true,
                 },
             ],
-            'indent': ['error', 2],
+            'indent': ['error', 4],
             'comma-dangle': ['error', 'always-multiline'],
             'eqeqeq': ['error', 'always'],
             'no-var': 'error',
