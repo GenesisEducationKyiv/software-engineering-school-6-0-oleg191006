@@ -6,8 +6,8 @@
   "scripts": {
     "start": "node -r module-alias/register src/server.js",
     "dev": "nodemon --exec \"node -r module-alias/register\" src/server.js",
-    "lint": "eslint --no-error-on-unmatched-pattern src/ tests/",
-    "lint:fix": "eslint --no-error-on-unmatched-pattern src/ tests/ --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test:unit": "jest --runInBand --passWithNoTests",
     "test": "jest --coverage --forceExit --detectOpenHandles --passWithNoTests"
   },

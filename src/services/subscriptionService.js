@@ -5,20 +5,9 @@ const emailService = require('./emailService');
 const config = require('@/config');
 const { validateEmail, validateRepo, validateToken } = require('@/validators/subscription');
 const logger = require('@/utils/logger');
+const { createError, assertValid } = require('@/utils/validation');
 const { SUBSCRIPTION_MESSAGES } = require('@/constants/messages');
 
-function createError(message, statusCode) {
-  const err = new Error(message);
-  err.statusCode = statusCode;
-  err.expose = true;
-  return err;
-}
-
-function assertValid(check) {
-  if (!check.valid) {
-    throw createError(check.error, 400);
-  }
-}
 
 async function subscribe(email, repo) {
   assertValid(validateEmail(email));
@@ -109,11 +98,13 @@ async function getSubscriptions(email) {
   const normalizedEmail = email.trim().toLowerCase();
   const subs = await subscriptionRepo.findAllByEmail(normalizedEmail);
 
-  return subs.map((s) => ({
-    email: s.email,
-    repo: s.repo,
-    confirmed: s.confirmed,
-    last_seen_tag: s.last_seen_tag,
+  return subs.map(({
+    email: subscriptionEmail, repo, confirmed, lastSeenTag,
+  }) => ({
+    email: subscriptionEmail,
+    repo,
+    confirmed,
+    lastSeenTag,
   }));
 }
 
