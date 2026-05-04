@@ -53,7 +53,7 @@ async function subscribe(email, repo) {
 
   try {
     await emailService.sendConfirmationEmail(normalizedEmail, normalizedRepo, confirmToken, unsubscribeToken);
-  } catch (err) {
+  } catch {
     try {
       await subscriptionRepo.remove(created.id);
     } catch (rollbackErr) {
