@@ -69,9 +69,21 @@ const testConfig = {
     },
 };
 
+const publicModuleConfig = {
+    files: ['public/**/*.js'],
+    languageOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        globals: {
+            ...globals.browser,
+        },
+    },
+};
+
 module.exports = [
     ignoreConfig,
     js.configs.recommended,
     mainConfig,
+    publicModuleConfig,
     testConfig,
 ];
