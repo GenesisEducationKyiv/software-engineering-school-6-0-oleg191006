@@ -99,12 +99,12 @@ async function getSubscriptions(email) {
     const subs = await subscriptionRepo.findAllByEmail(normalizedEmail);
 
     return subs.map(({
-        email: subscriptionEmail, repo, confirmed, lastSeenTag,
+        email: subscriptionEmail, repo, confirmed, last_seen_tag,
     }) => ({
         email: subscriptionEmail,
         repo,
         confirmed,
-        lastSeenTag,
+        last_seen_tag,
     }));
 }
 
