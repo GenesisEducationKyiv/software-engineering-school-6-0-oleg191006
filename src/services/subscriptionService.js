@@ -3,11 +3,7 @@ const subscriptionRepo = require('@/repositories/subscriptionRepository');
 const githubService = require('./githubService');
 const emailService = require('./emailService');
 const config = require('@/config');
-const {
-    validateEmail,
-    validateRepo,
-    validateToken,
-} = require('@/validators/subscription');
+const { validateEmail, validateRepo, validateToken } = require('@/validators/subscription');
 const logger = require('@/utils/logger');
 const { createError, assertValid } = require('@/utils/validation');
 const { SUBSCRIPTION_MESSAGES } = require('@/constants/messages');
@@ -25,10 +21,7 @@ function createSubscriptionService(deps = {}) {
         const normalizedEmail = emailAddr.trim().toLowerCase();
         const normalizedRepo = repoName.trim();
 
-        const existing = await repo.findByEmailAndRepo(
-            normalizedEmail,
-            normalizedRepo,
-        );
+        const existing = await repo.findByEmailAndRepo(normalizedEmail, normalizedRepo);
         if (existing) {
             throw createError(SUBSCRIPTION_MESSAGES.ALREADY_SUBSCRIBED, 409);
         }
@@ -53,25 +46,15 @@ function createSubscriptionService(deps = {}) {
         });
 
         try {
-            await email.sendConfirmationEmail(
-                normalizedEmail,
-                normalizedRepo,
-                confirmToken,
-                unsubscribeToken,
-            );
+            await email.sendConfirmationEmail(normalizedEmail, normalizedRepo, confirmToken, unsubscribeToken);
         } catch {
             try {
                 await repo.remove(created.id);
             } catch (rollbackErr) {
-                logger.error(
-                    'Failed to rollback subscription after email send error',
-                    rollbackErr,
-                );
+                logger.error('Failed to rollback subscription after email send error', rollbackErr);
             }
 
-            const emailConfigured = Boolean(
-                config.resend.apiKey || (config.smtp.user && config.smtp.pass),
-            );
+            const emailConfigured = Boolean(config.resend.apiKey || (config.smtp.user && config.smtp.pass));
             const message = emailConfigured
                 ? SUBSCRIPTION_MESSAGES.EMAIL_SEND_FAILED
                 : SUBSCRIPTION_MESSAGES.EMAIL_NOT_CONFIGURED;
@@ -120,19 +103,14 @@ function createSubscriptionService(deps = {}) {
         const normalizedEmail = emailAddr.trim().toLowerCase();
         const subs = await repo.findAllByEmail(normalizedEmail);
 
-        return subs.map(
-            ({
-                email: subscriptionEmail,
-                repo: subRepo,
-                confirmed,
-                last_seen_tag,
-            }) => ({
-                email: subscriptionEmail,
-                repo: subRepo,
-                confirmed,
-                last_seen_tag,
-            }),
-        );
+        return subs.map(({
+            email: subscriptionEmail, repo: subRepo, confirmed, last_seen_tag,
+        }) => ({
+            email: subscriptionEmail,
+            repo: subRepo,
+            confirmed,
+            last_seen_tag,
+        }));
     }
 
     return {
