@@ -1,12 +1,10 @@
-const cron = require('node-cron');
-const config = require('@/config');
 const logger = require('@/utils/logger');
 const githubService = require('./githubService');
 const emailService = require('./emailService');
 const subscriptionRepo = require('@/repositories/subscriptionRepository');
 const repoRepo = require('@/repositories/repoRepository');
 
-let cronTask = null;
+
 
 async function scanForNewReleases() {
     logger.info('Scanner: starting release check...');
@@ -71,30 +69,6 @@ async function checkRepoForNewRelease(repo) {
     }
 }
 
-function start() {
-    if (cronTask) {
-        logger.warn('Scanner: already running');
-        return;
-    }
 
-    const expression = config.scanner.cron;
-    logger.info(`Scanner: scheduling with cron expression "${expression}"`);
 
-    cronTask = cron.schedule(expression, () => {
-        scanForNewReleases().catch((err) => {
-            logger.error('Scanner: unhandled error during scan', err);
-        });
-    });
-
-    logger.info('Scanner: started');
-}
-
-function stop() {
-    if (cronTask) {
-        cronTask.stop();
-        cronTask = null;
-        logger.info('Scanner: stopped');
-    }
-}
-
-module.exports = { start, stop, scanForNewReleases, checkRepoForNewRelease };
+module.exports = { scanForNewReleases, checkRepoForNewRelease };
