@@ -34,16 +34,19 @@ async function withRateLimitRetry(fn, maxRetries = 3) {
         try {
             return await fn();
         } catch (err) {
-            if (err.response?.status === 429) {
-                const raw = parseInt(err.response.headers['retry-after'], 10);
-                const retryAfter = Number.isFinite(raw) && raw > 0 ? raw : 60;
-                logger.warn(`GitHub API rate limit hit. Retry-After: ${retryAfter}s (attempt ${attempt + 1}/${maxRetries + 1})`);
-
-                if (attempt < maxRetries) {
-                    await module.exports.sleep(retryAfter * 1000);
-                    continue;
-                }
+            if (err.response?.status !== 429) {
+                throw err;
             }
+
+            const raw = parseInt(err.response.headers['retry-after'], 10);
+            const retryAfter = Number.isFinite(raw) && raw > 0 ? raw : 60;
+            logger.warn(`GitHub API rate limit hit. Retry-After: ${retryAfter}s (attempt ${attempt + 1}/${maxRetries + 1})`);
+
+            if (attempt < maxRetries) {
+                await module.exports.sleep(retryAfter * 1000);
+                continue;
+            }
+
             throw err;
         }
     }
