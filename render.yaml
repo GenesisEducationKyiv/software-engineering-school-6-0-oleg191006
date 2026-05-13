@@ -1,0 +1,69 @@
+databases:
+  - name: notificator-db
+    plan: free
+    databaseName: notificator
+    user: notificator
+
+services:
+  - type: redis
+    name: notificator-redis
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: allow all
+
+  - type: web
+    name: notificator
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: notificator-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: notificator-redis
+          property: connectionString
+      - key: REDIS_CONNECT_TIMEOUT_MS
+        value: "5000"
+      - key: GITHUB_CACHE_TTL_SECONDS
+        value: "600"
+      - key: APP_URL
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURE
+        value: "false"
+      - key: SMTP_REJECT_UNAUTHORIZED
+        value: "true"
+      - key: SMTP_CONNECTION_TIMEOUT_MS
+        value: "30000"
+      - key: SMTP_GREETING_TIMEOUT_MS
+        value: "30000"
+      - key: SMTP_SOCKET_TIMEOUT_MS
+        value: "60000"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: "GitHub Notificator <noreply@notificator.app>"
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        value: "GitHub Notificator <onboarding@resend.dev>"
+      - key: SCAN_CRON
+        value: "*/10 * * * *"

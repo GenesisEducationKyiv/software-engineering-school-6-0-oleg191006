@@ -1,0 +1,556 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "GitHub Release Notificator",
+    "description": "API collection for testing the GitHub Release Notification service.\n\n## Quick Start\n1. Set the `baseUrl` variable (default: http://localhost:3000)\n2. Set `apiKey` only if authentication is enabled\n3. Run \"Subscribe\" first, then check email and copy `confirmToken` from the confirmation link\n4. Confirm subscription using \"Confirm Subscription\"\n5. Copy `unsubscribeToken` from the confirmation email (token shown as plain text) and use it in \"Unsubscribe\"\n\n## Variables\n- `baseUrl` — server URL\n- `apiKey` — X-API-Key value (leave empty if auth disabled)\n- `email` — test email address\n- `repo` — GitHub repo in owner/repo format\n- `confirmToken` — token from confirmation email link\n- `unsubscribeToken` — unsubscribe token from email text",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "olegchaplia2006@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "repo",
+      "value": "nodejs/node",
+      "type": "string"
+    },
+    {
+      "key": "confirmToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "unsubscribeToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Health check endpoint. Does NOT require API key.\n\nReturns `{ status: \"ok\", timestamp: \"...\" }`"
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Status is ok', () => {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.status).to.eql('ok');",
+              "    pm.expect(json.timestamp).to.be.a('string');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscription Flow",
+      "item": [
+        {
+          "name": "1. Subscribe (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"{{repo}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            },
+            "description": "Subscribe an email to release notifications for a GitHub repo.\n\n**Happy path:** Returns 200 + sends confirmation email.\n\nCheck your inbox for the confirmation link — copy the token UUID from the URL."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns success message', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Confirmation email sent');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1b. Subscribe (form-urlencoded)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "email", "value": "{{email}}", "type": "text" },
+                { "key": "repo", "value": "facebook/react", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            },
+            "description": "Same endpoint but using form-urlencoded body (as per Swagger spec)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Confirm Subscription",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/confirm/{{confirmToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "confirm", "{{confirmToken}}"]
+            },
+            "description": "Confirm subscription using the token from the confirmation email.\n\nNote: this endpoint can return HTML in browser mode, so Postman explicitly requests JSON via `Accept: application/json`.\n\n**How to get the token:**\n1. Check your email after subscribing\n2. Copy the UUID from the confirmation link URL\n3. Paste it into the `confirmToken` collection variable"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns confirmed message', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('confirmed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Get Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions?email={{email}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions"],
+              "query": [{ "key": "email", "value": "{{email}}" }]
+            },
+            "description": "List all subscriptions for the given email.\n\nReturns an array of `{ email, repo, confirmed, last_seen_tag }`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});",
+                  "pm.test('Each item has required fields', () => {",
+                  "    const json = pm.response.json();",
+                  "    if (json.length > 0) {",
+                  "        pm.expect(json[0]).to.have.property('email');",
+                  "        pm.expect(json[0]).to.have.property('repo');",
+                  "        pm.expect(json[0]).to.have.property('confirmed');",
+                  "        pm.expect(json[0]).to.have.property('last_seen_tag');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Unsubscribe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/unsubscribe/{{unsubscribeToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "unsubscribe", "{{unsubscribeToken}}"]
+            },
+            "description": "Unsubscribe using token.\n\nNote: this endpoint can return HTML in browser mode, so Postman explicitly requests JSON via `Accept: application/json`.\n\n**How to get the token:**\nCopy `Unsubscribe token` from the confirmation email and set `unsubscribeToken`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns unsubscribed message', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('Unsubscribed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Subscribe — Invalid repo format (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"invalid-repo-no-slash\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            },
+            "description": "Should return 400 — repo format must be `owner/repo`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subscribe — Invalid email (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"not-an-email\",\n    \"repo\": \"golang/go\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            },
+            "description": "Should return 400 — invalid email format."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subscribe — Repo not found (404)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"thisowner/doesnotexist999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            },
+            "description": "Should return 404 — repo doesn't exist on GitHub."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subscribe — Duplicate (409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"{{repo}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            },
+            "description": "Should return 409 — already subscribed to this repo.\n\nRun this AFTER the first successful subscribe to the same email+repo."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409', () => pm.response.to.have.status(409));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm — Invalid token (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/confirm/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "confirm", "00000000-0000-0000-0000-000000000000"]
+            },
+            "description": "Should return 404 — token doesn't exist."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unsubscribe — Invalid token (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/unsubscribe/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "unsubscribe",
+                "00000000-0000-0000-0000-000000000000"
+              ]
+            },
+            "description": "Should return 404 — token doesn't exist."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Subscriptions — Missing email (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions"]
+            },
+            "description": "Should return 400 — email query param is required."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Popular Repos",
+      "item": [
+        {
+          "name": "Subscribe to golang/go",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"golang/go\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe to facebook/react",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"facebook/react\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe to microsoft/typescript",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"microsoft/TypeScript\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Subscribe to vercel/next.js",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{email}}\",\n    \"repo\": \"vercel/next.js\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/subscribe",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscribe"]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Quick-subscribe to popular repositories for testing."
+    }
+  ]
+}
