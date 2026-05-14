@@ -9,7 +9,7 @@ const { createError, assertValid } = require('@/utils/validation');
 const { SUBSCRIPTION_MESSAGES } = require('@/constants/messages');
 
 function createSubscriptionService(deps = {}) {
-    const repo = deps.subscriptionRepo || subscriptionRepo;
+    const subscriptionRepository = deps.subscriptionRepo || subscriptionRepo;
     const github = deps.githubService || githubService;
     const email = deps.emailService || emailService;
     const generateToken = deps.generateToken || uuidv4;
@@ -21,7 +21,7 @@ function createSubscriptionService(deps = {}) {
         const normalizedEmail = emailAddr.trim().toLowerCase();
         const normalizedRepo = repoName.trim();
 
-        const existing = await repo.findByEmailAndRepo(normalizedEmail, normalizedRepo);
+        const existing = await subscriptionRepository.findByEmailAndRepo(normalizedEmail, normalizedRepo);
         if (existing) {
             throw createError(SUBSCRIPTION_MESSAGES.ALREADY_SUBSCRIBED, 409);
         }
@@ -37,7 +37,7 @@ function createSubscriptionService(deps = {}) {
         const confirmToken = generateToken();
         const unsubscribeToken = generateToken();
 
-        const created = await repo.create({
+        const created = await subscriptionRepository.create({
             email: normalizedEmail,
             repo: normalizedRepo,
             confirmToken,
@@ -49,7 +49,7 @@ function createSubscriptionService(deps = {}) {
             await email.sendConfirmationEmail(normalizedEmail, normalizedRepo, confirmToken, unsubscribeToken);
         } catch {
             try {
-                await repo.remove(created.id);
+                await subscriptionRepository.remove(created.id);
             } catch (rollbackErr) {
                 logger.error('Failed to rollback subscription after email send error', rollbackErr);
             }
@@ -68,7 +68,7 @@ function createSubscriptionService(deps = {}) {
     async function confirmSubscription(token) {
         assertValid(validateToken(token));
 
-        const subscription = await repo.findByConfirmToken(token);
+        const subscription = await subscriptionRepository.findByConfirmToken(token);
         if (!subscription) {
             throw createError(SUBSCRIPTION_MESSAGES.TOKEN_NOT_FOUND, 404);
         }
@@ -77,14 +77,14 @@ function createSubscriptionService(deps = {}) {
             return { message: SUBSCRIPTION_MESSAGES.ALREADY_CONFIRMED };
         }
 
-        await repo.confirm(subscription.id);
+        await subscriptionRepository.confirm(subscription.id);
         return { message: SUBSCRIPTION_MESSAGES.CONFIRM_SUCCESS };
     }
 
     async function unsubscribe(token) {
         assertValid(validateToken(token));
 
-        const subscription = await repo.findByUnsubscribeToken(token);
+        const subscription = await subscriptionRepository.findByUnsubscribeToken(token);
         if (!subscription) {
             throw createError(SUBSCRIPTION_MESSAGES.TOKEN_NOT_FOUND, 404);
         }
@@ -93,7 +93,7 @@ function createSubscriptionService(deps = {}) {
             throw createError(SUBSCRIPTION_MESSAGES.NOT_CONFIRMED, 409);
         }
 
-        await repo.remove(subscription.id);
+        await subscriptionRepository.remove(subscription.id);
         return { message: SUBSCRIPTION_MESSAGES.UNSUBSCRIBE_SUCCESS };
     }
 
@@ -101,7 +101,7 @@ function createSubscriptionService(deps = {}) {
         assertValid(validateEmail(emailAddr));
 
         const normalizedEmail = emailAddr.trim().toLowerCase();
-        const subs = await repo.findAllByEmail(normalizedEmail);
+        const subs = await subscriptionRepository.findAllByEmail(normalizedEmail);
 
         return subs.map(({
             email: subscriptionEmail, repo: subRepo, confirmed, last_seen_tag,

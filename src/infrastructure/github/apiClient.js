@@ -29,7 +29,7 @@ function sleep(ms) {
 }
 
 
-async function withRateLimitRetry(fn, maxRetries = 3) {
+async function withRateLimitRetry(fn, { maxRetries = 3, sleepFn = sleep } = {}) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
             return await fn();
@@ -43,7 +43,7 @@ async function withRateLimitRetry(fn, maxRetries = 3) {
             logger.warn(`GitHub API rate limit hit. Retry-After: ${retryAfter}s (attempt ${attempt + 1}/${maxRetries + 1})`);
 
             if (attempt < maxRetries) {
-                await module.exports.sleep(retryAfter * 1000);
+                await sleepFn(retryAfter * 1000);
                 continue;
             }
 

@@ -19,11 +19,13 @@ beforeEach(() => {
 describe('withRateLimitRetry', () => {
     it('should return result on first success', async () => {
         const fn = jest.fn().mockResolvedValue('ok');
+        const sleepFn = jest.fn().mockResolvedValue();
 
-        const result = await githubApiClient.withRateLimitRetry(fn, 2);
+        const result = await githubApiClient.withRateLimitRetry(fn, { maxRetries: 2, sleepFn });
 
         expect(result).toBe('ok');
         expect(fn).toHaveBeenCalledTimes(1);
+        expect(sleepFn).not.toHaveBeenCalled();
     });
 
     it('should retry on 429 and succeed', async () => {
@@ -33,12 +35,13 @@ describe('withRateLimitRetry', () => {
         const fn = jest.fn()
             .mockRejectedValueOnce(rateLimitError)
             .mockResolvedValueOnce('ok');
+        const sleepFn = jest.fn().mockResolvedValue();
 
-        const result = await githubApiClient.withRateLimitRetry(fn, 2);
+        const result = await githubApiClient.withRateLimitRetry(fn, { maxRetries: 2, sleepFn });
 
         expect(result).toBe('ok');
         expect(fn).toHaveBeenCalledTimes(2);
-        expect(githubApiClient.sleep).toHaveBeenCalledTimes(1);
+        expect(sleepFn).toHaveBeenCalledTimes(1);
     });
 
     it('should throw non-429 errors immediately', async () => {
@@ -46,9 +49,11 @@ describe('withRateLimitRetry', () => {
         error.response = { status: 500 };
 
         const fn = jest.fn().mockRejectedValue(error);
+        const sleepFn = jest.fn().mockResolvedValue();
 
-        await expect(githubApiClient.withRateLimitRetry(fn, 2)).rejects.toThrow('Server Error');
+        await expect(githubApiClient.withRateLimitRetry(fn, { maxRetries: 2, sleepFn })).rejects.toThrow('Server Error');
         expect(fn).toHaveBeenCalledTimes(1);
+        expect(sleepFn).not.toHaveBeenCalled();
     });
 
     it('should throw 429 error after exhausting retries', async () => {
@@ -56,9 +61,11 @@ describe('withRateLimitRetry', () => {
         rateLimitError.response = { status: 429, headers: { 'retry-after': '1' } };
 
         const fn = jest.fn().mockRejectedValue(rateLimitError);
+        const sleepFn = jest.fn().mockResolvedValue();
 
-        await expect(githubApiClient.withRateLimitRetry(fn, 2)).rejects.toThrow('Rate Limited');
+        await expect(githubApiClient.withRateLimitRetry(fn, { maxRetries: 2, sleepFn })).rejects.toThrow('Rate Limited');
         expect(fn).toHaveBeenCalledTimes(3);
+        expect(sleepFn).toHaveBeenCalledTimes(2);
     });
 });
 
