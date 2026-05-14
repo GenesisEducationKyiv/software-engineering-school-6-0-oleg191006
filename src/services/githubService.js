@@ -1,34 +1,9 @@
-const axios = require('axios');
+const githubClient = require('@/infrastructure/github/apiClient');
 const config = require('@/config');
 const logger = require('@/utils/logger');
 const redisCache = require('@/cache/redisCache');
 const { GITHUB_MESSAGES } = require('@/constants/messages');
 
-let client = null;
-
-function getClient() {
-    if (!client) {
-        const headers = {
-            Accept: 'application/vnd.github+json',
-            'User-Agent': 'notificator-app',
-        };
-
-        if (config.github.token) {
-            headers.Authorization = `Bearer ${config.github.token}`;
-        }
-
-        client = axios.create({
-            baseURL: config.github.apiBase,
-            timeout: 10000,
-            headers,
-        });
-    }
-    return client;
-}
-
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function normalizeRepo(repo) {
     return repo.trim().toLowerCase();
@@ -42,26 +17,6 @@ function latestReleaseKey(repo) {
     return `github:latest-release:${normalizeRepo(repo)}`;
 }
 
-async function withRateLimitRetry(fn, maxRetries = 3) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            return await fn();
-        } catch (err) {
-            if (err.response?.status === 429) {
-                const raw = parseInt(err.response.headers['retry-after'], 10);
-                const retryAfter = Number.isFinite(raw) && raw > 0 ? raw : 60;
-                logger.warn(`GitHub API rate limit hit. Retry-After: ${retryAfter}s (attempt ${attempt + 1}/${maxRetries + 1})`);
-
-                if (attempt < maxRetries) {
-                    await module.exports.sleep(retryAfter * 1000);
-                    continue;
-                }
-            }
-            throw err;
-        }
-    }
-}
-
 async function checkRepoExists(repo) {
     const cacheKey = repoExistsKey(repo);
     const cached = await redisCache.getJson(cacheKey);
@@ -70,7 +25,7 @@ async function checkRepoExists(repo) {
     }
 
     try {
-        await withRateLimitRetry(() => getClient().get(`/repos/${repo}`));
+        await githubClient.fetchRepo(repo);
         await redisCache.setJson(cacheKey, true, config.github.cacheTtlSeconds);
         return true;
     } catch (err) {
@@ -98,7 +53,7 @@ async function getLatestRelease(repo) {
     }
 
     try {
-        const { data } = await withRateLimitRetry(() => getClient().get(`/repos/${repo}/releases/latest`));
+        const { data } = await githubClient.fetchLatestRelease(repo);
         const release = {
             tag: data.tag_name,
             name: data.name || data.tag_name,
@@ -122,4 +77,4 @@ async function getLatestRelease(repo) {
     }
 }
 
-module.exports = { checkRepoExists, getLatestRelease, getClient, withRateLimitRetry, sleep };
+module.exports = { checkRepoExists, getLatestRelease };

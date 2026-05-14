@@ -6,6 +6,7 @@ const createApp = require('./app');
 const { runMigrations } = require('./db/migrations');
 const { close: closeDb } = require('./db/connection');
 const scanner = require('./services/scannerService');
+const scheduler = require('./infrastructure/scheduler');
 
 async function main() {
     try {
@@ -18,11 +19,11 @@ async function main() {
             logger.info(`Server listening on port ${config.port} (${config.nodeEnv})`);
         });
 
-        scanner.start();
+        scheduler.start(() => scanner.scanForNewReleases());
 
         const shutdown = async (signal) => {
             logger.info(`Received ${signal}. Shutting down gracefully...`);
-            scanner.stop();
+            scheduler.stop();
             server.close(async () => {
                 await closeDb();
                 logger.info('Server shut down');
