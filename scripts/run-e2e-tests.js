@@ -1,22 +1,8 @@
-const { spawn, spawnSync } = require('child_process');
+const { spawn } = require('child_process');
 const http = require('http');
+const { runCommand, resetCompose, withCompose, buildTestEnv } = require('./testUtils');
 
-const composeFile = 'docker-compose.test.yml';
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001';
-
-function runCommand(command, args, options = {}) {
-    const result = spawnSync(command, args, { stdio: 'inherit', ...options });
-    if (result.error) {
-        throw result.error;
-    }
-    if (result.status !== 0) {
-        throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status}`);
-    }
-}
-
-function withCompose(commandArgs) {
-    runCommand('docker', ['compose', '-f', composeFile, ...commandArgs]);
-}
 
 function waitForHealth(url, timeoutMs = 30000) {
     const start = Date.now();
@@ -46,25 +32,10 @@ function waitForHealth(url, timeoutMs = 30000) {
 }
 
 function buildServerEnv() {
-    return {
-        ...process.env,
-        NODE_ENV: 'test',
+    return buildTestEnv({
         PORT: '3001',
         APP_URL: baseUrl,
-        DB_HOST: 'localhost',
-        DB_PORT: '5433',
-        DB_NAME: 'notificator_test',
-        DB_USER: 'postgres',
-        DB_PASSWORD: 'postgres',
-        REDIS_URL: 'redis://localhost:6380',
-        REDIS_CONNECT_TIMEOUT_MS: '5000',
-        API_KEY: '',
-        GITHUB_TOKEN: '',
-        RESEND_API_KEY: '',
-        SMTP_USER: '',
-        SMTP_PASS: '',
-        SCAN_CRON: '0 0 1 1 *',
-    };
+    });
 }
 
 async function run() {
@@ -72,8 +43,7 @@ async function run() {
     let server;
 
     try {
-        withCompose(['down', '-v', '--remove-orphans']);
-        withCompose(['up', '-d', '--wait']);
+        resetCompose();
 
         server = spawn('node', ['-r', 'module-alias/register', 'src/server.js'], {
             stdio: 'inherit',
