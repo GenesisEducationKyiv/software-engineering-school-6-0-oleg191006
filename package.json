@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test:unit": "jest --runInBand --testPathPattern=tests/unit --passWithNoTests",
+    "test:unit:coverage": "jest --runInBand --testPathPattern=tests/unit --coverage --passWithNoTests",
     "test:integration": "node scripts/run-integration-tests.js",
     "test:e2e": "node scripts/run-e2e-tests.js",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
