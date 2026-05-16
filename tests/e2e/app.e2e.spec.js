@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+const { test, expect } = require('@playwright/test');
 
 test('subscribe form shows success message', async ({ page }) => {
     await page.route('**/api/subscribe', async (route) => {
