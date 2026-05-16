@@ -80,10 +80,24 @@ const publicModuleConfig = {
     },
 };
 
+const playwrightConfig = {
+    files: ['tests/e2e/**/*.js'],
+    languageOptions: {
+        globals: {
+            test: 'readonly',
+            expect: 'readonly',
+        },
+    },
+    rules: {
+        'no-redeclare': 'off',
+    },
+};
+
 module.exports = [
     ignoreConfig,
     js.configs.recommended,
     mainConfig,
     publicModuleConfig,
     testConfig,
+    playwrightConfig,
 ];
