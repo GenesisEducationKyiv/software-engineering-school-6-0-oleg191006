@@ -1,12 +1,4 @@
-process.env.NODE_ENV = process.env.NODE_ENV || 'test';
-process.env.DB_HOST = process.env.DB_HOST || 'localhost';
-process.env.DB_PORT = process.env.DB_PORT || '5433';
-process.env.DB_NAME = process.env.DB_NAME || 'notificator_test';
-process.env.DB_USER = process.env.DB_USER || 'postgres';
-process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'postgres';
-process.env.REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6380';
-process.env.API_KEY = process.env.API_KEY || '';
-process.env.SCAN_CRON = process.env.SCAN_CRON || '0 0 1 1 *';
+require('dotenv').config({ path: '.env.test' });
 
 const request = require('supertest');
 const { query, close } = require('@/db/connection');

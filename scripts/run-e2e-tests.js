@@ -1,34 +1,25 @@
 const { spawn } = require('child_process');
-const http = require('http');
 const { runCommand, resetCompose, withCompose, buildTestEnv } = require('./testUtils');
 
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3001';
 
-function waitForHealth(url, timeoutMs = 30000) {
-    const start = Date.now();
+async function waitForHealth(url, timeoutMs = 30000) {
+    const deadline = Date.now() + timeoutMs;
 
-    return new Promise((resolve, reject) => {
-        const attempt = () => {
-            http.get(`${url}/health`, (res) => {
-                res.resume();
-                if (res.statusCode === 200) {
-                    resolve();
-                    return;
-                }
-                retry();
-            }).on('error', retry);
-        };
-
-        const retry = () => {
-            if (Date.now() - start > timeoutMs) {
-                reject(new Error('Server did not become healthy in time.'));
+    while (Date.now() < deadline) {
+        try {
+            const res = await fetch(`${url}/health`);
+            if (res.ok) {
                 return;
             }
-            setTimeout(attempt, 500);
-        };
+        } catch (_err) {
+            // ignore and retry
+        }
 
-        attempt();
-    });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    throw new Error('Server did not become healthy in time.');
 }
 
 function buildServerEnv() {

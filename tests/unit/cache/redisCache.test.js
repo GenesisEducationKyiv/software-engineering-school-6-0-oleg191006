@@ -10,11 +10,7 @@ describe('redisCache', () => {
             },
         }));
 
-        if (redisMock) {
-            jest.doMock('ioredis', () => jest.fn(() => redisMock));
-        } else {
-            jest.doMock('ioredis', () => jest.fn());
-        }
+        jest.doMock('ioredis', () => jest.fn(() => redisMock));
 
         return require(modulePath);
     };
