@@ -8,7 +8,11 @@
     "dev": "nodemon --exec \"node -r module-alias/register\" src/server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:unit": "jest --runInBand --passWithNoTests",
+    "test:unit": "jest --runInBand --testPathPattern=tests/unit --passWithNoTests",
+    "test:unit:coverage": "jest --runInBand --testPathPattern=tests/unit --coverage --passWithNoTests",
+    "test:integration": "node scripts/run-integration-tests.js",
+    "test:e2e": "node scripts/run-e2e-tests.js",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test": "jest --coverage --forceExit --detectOpenHandles --passWithNoTests"
   },
   "_moduleAliases": {
@@ -41,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.47.2",
     "eslint": "^10.3.0",
     "eslint-plugin-jest": "^29.15.2",
     "globals": "^15.0.0",
