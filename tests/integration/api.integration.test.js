@@ -4,6 +4,7 @@ const request = require('supertest');
 const axios = require('axios');
 const nodemailer = require('nodemailer');
 const { query, close } = require('@/db/connection');
+const { stopMetrics } = require('@/metrics');
 const { runMigrations } = require('@/db/migrations');
 
 jest.mock('axios');
@@ -28,6 +29,7 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
+    stopMetrics();
     await close();
 });
 
