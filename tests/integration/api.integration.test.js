@@ -7,6 +7,8 @@ const { query, close } = require('@/db/connection');
 const { stopMetrics } = require('@/metrics');
 const { runMigrations } = require('@/db/migrations');
 
+const redisCache = require('@/cache/redisCache');
+
 jest.mock('axios');
 jest.mock('nodemailer');
 
@@ -31,6 +33,7 @@ afterEach(async () => {
 afterAll(async () => {
     stopMetrics();
     await close();
+    await redisCache.disconnect();
 });
 
 describe('Integration API endpoints', () => {

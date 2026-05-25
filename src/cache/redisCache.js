@@ -80,7 +80,16 @@ async function setJson(key, value, ttlSeconds) {
     }
 }
 
+async function disconnect() {
+    if (redisClient) {
+        await redisClient.quit();
+        redisClient = null;
+    }
+    disabled = !config.redis.url;
+}
+
 module.exports = {
     getJson,
     setJson,
+    disconnect,
 };
