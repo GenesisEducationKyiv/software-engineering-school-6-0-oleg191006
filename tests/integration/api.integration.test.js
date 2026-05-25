@@ -1,24 +1,23 @@
 require('dotenv').config({ path: '.env.test' });
 
 const request = require('supertest');
+const axios = require('axios');
+const nodemailer = require('nodemailer');
 const { query, close } = require('@/db/connection');
 const { runMigrations } = require('@/db/migrations');
-const githubService = require('@/services/githubService');
-const emailService = require('@/services/emailService');
 
-jest.mock('@/services/githubService', () => ({
-    checkRepoExists: jest.fn(),
-    getLatestRelease: jest.fn(),
-}));
+jest.mock('axios');
+jest.mock('nodemailer');
 
-jest.mock('@/services/emailService', () => ({
-    sendConfirmationEmail: jest.fn(),
-    sendReleaseNotification: jest.fn(),
-}));
+const mockAxiosInstance = { get: jest.fn() };
+const mockSendMail = jest.fn().mockResolvedValue({});
 
 let app;
 
 beforeAll(async () => {
+    axios.create.mockReturnValue(mockAxiosInstance);
+    nodemailer.createTransport.mockReturnValue({ sendMail: mockSendMail });
+
     await runMigrations();
     app = require('@/app')();
 });
@@ -34,9 +33,16 @@ afterAll(async () => {
 
 describe('Integration API endpoints', () => {
     test('POST /api/subscribe creates subscription', async () => {
-        githubService.checkRepoExists.mockResolvedValue(true);
-        githubService.getLatestRelease.mockResolvedValue({ tag: 'v1.0.0' });
-        emailService.sendConfirmationEmail.mockResolvedValue();
+        mockAxiosInstance.get
+            .mockResolvedValueOnce({ data: {} })
+            .mockResolvedValueOnce({
+                data: {
+                    tag_name: 'v1.0.0',
+                    name: 'v1.0.0',
+                    html_url: 'https://github.com/nodejs/node/releases/tag/v1.0.0',
+                    published_at: '2024-01-01',
+                },
+            });
 
         const res = await request(app)
             .post('/api/subscribe')
@@ -51,7 +57,7 @@ describe('Integration API endpoints', () => {
     });
 
     test('POST /api/subscribe returns 404 when repo not found', async () => {
-        githubService.checkRepoExists.mockResolvedValue(false);
+        mockAxiosInstance.get.mockRejectedValueOnce({ response: { status: 404 } });
 
         const res = await request(app)
             .post('/api/subscribe')
