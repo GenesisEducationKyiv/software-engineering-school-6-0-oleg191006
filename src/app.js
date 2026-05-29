@@ -2,16 +2,20 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const apiKeyAuth = require('@/middleware/apiKey');
+const metricsMiddleware = require('@/middleware/metricsMiddleware');
 const errorHandler = require('@/middleware/errorHandler');
 const subscriptionRoutes = require('@/routes/subscription');
-const { getMetricsPayload, getMetricsContentType } = require('@/metrics');
+const { initMetrics, getMetricsPayload, getMetricsContentType } = require('@/metrics');
 
 function createApp() {
     const app = express();
 
+    initMetrics();
+
     app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+    app.use(metricsMiddleware);
 
     app.use(express.static(path.join(__dirname, '..', 'public')));
 
