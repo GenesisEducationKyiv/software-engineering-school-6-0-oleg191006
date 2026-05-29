@@ -16,6 +16,6 @@ scrape_configs:
     scrape_interval: 30s
     scrape_timeout: 10s
     static_configs:
-      - targets: ["notificator-rxb1.onrender.com"]
+      - targets: ["software-engineering-school-6-0.onrender.com"]
         labels:
           env: "production"
