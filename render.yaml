@@ -79,7 +79,7 @@ services:
         fromService:
           type: web
           name: notificator-notification
-          property: url
+          property: hostport
       - key: APP_URL
         sync: false
       - key: API_KEY
