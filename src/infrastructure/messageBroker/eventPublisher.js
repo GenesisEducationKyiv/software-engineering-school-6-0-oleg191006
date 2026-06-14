@@ -33,13 +33,13 @@ function getQueue() {
 }
 
 async function publishConfirmationEmail({ email, repo, confirmToken, unsubscribeToken, confirmUrl }) {
-    const q = getQueue();
-    if (!q) {
+    const queue = getQueue();
+    if (!queue) {
         logger.warn('Message broker unavailable, skipping confirmation email event');
         return null;
     }
 
-    const job = await q.add(EventTypes.SEND_CONFIRMATION_EMAIL, {
+    const job = await queue.add(EventTypes.SEND_CONFIRMATION_EMAIL, {
         to: email,
         repo,
         confirmUrl,
@@ -55,13 +55,13 @@ async function publishConfirmationEmail({ email, repo, confirmToken, unsubscribe
 }
 
 async function publishReleaseNotification({ email, repo, release, unsubscribeToken, unsubscribeUrl }) {
-    const q = getQueue();
-    if (!q) {
+    const queue = getQueue();
+    if (!queue) {
         logger.warn('Message broker unavailable, skipping release notification event');
         return null;
     }
 
-    const job = await q.add(EventTypes.SEND_RELEASE_NOTIFICATION, {
+    const job = await queue.add(EventTypes.SEND_RELEASE_NOTIFICATION, {
         to: email,
         repo,
         release,
