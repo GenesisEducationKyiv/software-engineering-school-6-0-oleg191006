@@ -76,6 +76,25 @@ async function publishReleaseNotification({ email, repo, release, unsubscribeTok
     return job;
 }
 
+async function publishEmailCancellation({ email, confirmToken }) {
+    const q = getQueue();
+    if (!q) {
+        logger.warn('Message broker unavailable, skipping email cancellation event');
+        return null;
+    }
+
+    const job = await q.add(EventTypes.CANCEL_CONFIRMATION_EMAIL, {
+        email,
+        confirmToken,
+    });
+
+    logger.info(`Published ${EventTypes.CANCEL_CONFIRMATION_EMAIL} event`, {
+        jobId: job.id, email,
+    }); 
+
+    return job;
+}
+
 async function close() {
     if (queue) {
         await queue.close();
@@ -87,6 +106,7 @@ async function close() {
 module.exports = {
     publishConfirmationEmail,
     publishReleaseNotification,
+    publishEmailCancellation,
     close,
     getQueue,
 };
