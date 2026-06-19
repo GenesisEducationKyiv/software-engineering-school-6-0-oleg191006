@@ -25,6 +25,15 @@ async function processJob(job) {
         logger.info(`Release notification sent to ${to} for ${repo}@${release.tag}`, { jobId: job.id });
         break;
     }
+    case EventTypes.CANCEL_CONFIRMATION_EMAIL: {
+        const {email,confirmToken} = job.data;
+        logger.info(`Processing cancellation of confirmation email for ${email}`, { jobId: job.id });
+        if (!email || !confirmToken) {
+            throw new Error('Missing required fields: email, confirmToken');
+        }
+        break;
+
+    }
     default:
         logger.warn(`Unknown event type: ${job.name}`, { jobId: job.id });
         throw new Error(`Unknown event type: ${job.name}`);
