@@ -80,8 +80,8 @@ services:
 
   notification:
     build:
-      context: ./services/notification
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/notification/Dockerfile
     restart: unless-stopped
     depends_on:
       redis:
