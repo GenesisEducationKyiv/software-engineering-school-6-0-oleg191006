@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package notification.v1;
+
+service NotificationService {
+  // Sends a subscription confirmation email to the user.
+  rpc SendConfirmation(SendConfirmationRequest) returns (SendConfirmationResponse);
+
+  // Sends a release notification email to the user.
+  rpc SendReleaseNotification(SendReleaseNotificationRequest) returns (SendReleaseNotificationResponse);
+}
+
+message SendConfirmationRequest {
+  string to = 1;
+  string repo = 2;
+  string confirm_url = 3;
+  string unsubscribe_token = 4;
+}
+
+message SendConfirmationResponse {
+  bool success = 1;
+}
+
+message Release {
+  string tag = 1;
+  string name = 2;
+  string url = 3;
+  string published_at = 4;
+}
+
+message SendReleaseNotificationRequest {
+  string to = 1;
+  string repo = 2;
+  Release release = 3;
+  string unsubscribe_url = 4;
+}
+
+message SendReleaseNotificationResponse {
+  bool success = 1;
+}
