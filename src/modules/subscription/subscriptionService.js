@@ -7,6 +7,10 @@ const { validateEmail, validateRepo, validateToken } = require('./subscriptionVa
 const logger = require('@/utils/logger');
 const { createError, assertValid } = require('@/utils/validation');
 const { SUBSCRIPTION_MESSAGES } = require('@/constants/messages');
+const { createSubscribeSaga } = require('../../infrastructure/saga/subscribeSaga');
+const { executeSaga, SagaStatus } = require('../../infrastructure/saga/sagaOrchestrator');
+const eventPublisher = require('../../infrastructure/messageBroker/eventPublisher');
+const sagaLog = require('../../infrastructure/saga/sagaLog');
 
 function createSubscriptionService(deps = {}) {
     const subscriptionRepository = deps.subscriptionRepo || subscriptionRepo;
@@ -36,23 +40,30 @@ function createSubscriptionService(deps = {}) {
 
         const confirmToken = generateToken();
         const unsubscribeToken = generateToken();
+        const confirmUrl = `${config.appUrl}/confirm?token=${confirmToken}`;
 
-        const created = await subscriptionRepository.create({
+        const sagaDefinition = createSubscribeSaga({
+            subscriptionRepository,
+            notificationClient: notification,
+            eventPublisher,
+        });
+
+        const result =  await executeSaga(sagaDefinition,{
             email: normalizedEmail,
             repo: normalizedRepo,
             confirmToken,
             unsubscribeToken,
             lastSeenTag,
-        });
+            confirmUrl,
+        },{sagaLog});
 
-        try {
-            await notification.sendConfirmationEmail(normalizedEmail, normalizedRepo, confirmToken, unsubscribeToken);
-        } catch {
-            try {
-                await subscriptionRepository.remove(created.id);
-            } catch (rollbackErr) {
-                logger.error('Failed to rollback subscription after email send error', rollbackErr);
-            }
+        if(result.status !== SagaStatus.COMPLETED){
+            logger.error('Subcribe saga failed',{
+                sagaId: result.sagaId,
+                failedStep: result.failedStep,
+                error: result.error,
+            });
+
 
             const emailConfigured = Boolean(config.resend.apiKey || (config.smtp.user && config.smtp.pass));
             const message = emailConfigured

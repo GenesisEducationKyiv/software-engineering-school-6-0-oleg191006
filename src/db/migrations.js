@@ -39,6 +39,35 @@ const migrations = [
       );
     `,
     },
+    {
+        version: 3,
+        description: 'Create saga execution log tables',
+        sql: `
+      CREATE TABLE IF NOT EXISTS saga_executions (
+        id          SERIAL PRIMARY KEY,
+        saga_id     UUID            NOT NULL,
+        saga_name   VARCHAR(128)    NOT NULL,
+        status      VARCHAR(32)     NOT NULL,
+        context     JSONB,
+        error       TEXT,
+        created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_saga_executions_saga_id ON saga_executions (saga_id);
+      CREATE INDEX IF NOT EXISTS idx_saga_executions_status ON saga_executions (status);
+
+      CREATE TABLE IF NOT EXISTS saga_step_events (
+        id          SERIAL PRIMARY KEY,
+        saga_id     UUID            NOT NULL,
+        step_name   VARCHAR(128)    NOT NULL,
+        status      VARCHAR(32)     NOT NULL,
+        error       TEXT,
+        created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_saga_step_events_saga_id ON saga_step_events (saga_id);
+    `,
+    },
 ];
 
 async function runMigrations() {
