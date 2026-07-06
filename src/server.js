@@ -7,6 +7,7 @@ const { runMigrations } = require('./db/migrations');
 const { close: closeDb } = require('./db/connection');
 const scanner = require('./modules/scanner/scannerService');
 const scheduler = require('./infrastructure/scheduler');
+const eventPublisher = require('./infrastructure/messageBroker/eventPublisher');
 
 async function main() {
     try {
@@ -25,6 +26,7 @@ async function main() {
             logger.info(`Received ${signal}. Shutting down gracefully...`);
             scheduler.stop();
             server.close(async () => {
+                await eventPublisher.close();
                 await closeDb();
                 logger.info('Server shut down');
                 process.exit(0);

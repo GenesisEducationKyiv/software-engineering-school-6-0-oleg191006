@@ -3,6 +3,7 @@ require('dotenv').config({ path: '.env.test' });
 const request = require('supertest');
 const axios = require('axios');
 const { query, close } = require('@/db/connection');
+const {close:closeQueue} = require('@/infrastructure/messageBroker/eventPublisher');
 const { stopMetrics } = require('@/metrics');
 const { runMigrations } = require('@/db/migrations');
 
@@ -32,6 +33,7 @@ afterEach(async () => {
 afterAll(async () => {
     stopMetrics();
     await close();
+    await closeQueue();
     await redisCache.disconnect();
 });
 

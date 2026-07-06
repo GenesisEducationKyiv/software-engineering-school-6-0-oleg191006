@@ -1,7 +1,7 @@
 const axios = require('axios');
 const config = require('../config');
 const logger = require('../logger');
-const errorDetails = require('../errorDetails');
+const errorDetails = require('../utils/errorDetails');
 
 function isAvailable() {
     return Boolean(config.resend.apiKey);

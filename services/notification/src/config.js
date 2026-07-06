@@ -4,6 +4,10 @@ const config = {
     port: parseInt(process.env.PORT, 10) || 3001,
     nodeEnv: process.env.NODE_ENV || 'development',
 
+    redis: {
+        url: process.env.REDIS_URL || '',
+    },
+
     smtp: {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT, 10) || 587,

@@ -11,9 +11,15 @@ jest.mock('@/config', () => ({
     notificationServiceUrl: 'http://localhost:3001',
     resend: { apiKey: '' },
     smtp: { user: '', pass: '' },
+    redis: { url: '' },
+}));
+jest.mock('@/infrastructure/messageBroker/eventPublisher', () => ({
+    publishConfirmationEmail: jest.fn().mockResolvedValue(null),
+    publishReleaseNotification: jest.fn().mockResolvedValue(null),
 }));
 
 const notificationClient = require('@/modules/notification/notificationClient');
+const eventPublisher = require('@/infrastructure/messageBroker/eventPublisher');
 const logger = require('@/utils/logger');
 
 afterEach(() => {
@@ -22,7 +28,26 @@ afterEach(() => {
 
 describe('notificationClient', () => {
     describe('sendConfirmationEmail', () => {
-        it('should POST to notification service with correct payload', async () => {
+        it('should publish to queue when broker is available', async () => {
+            eventPublisher.publishConfirmationEmail.mockResolvedValue({ id: 'job-1' });
+
+            await notificationClient.sendConfirmationEmail(
+                'user@example.com', 'nodejs/node', 'confirm-token', 'unsub-token',
+            );
+
+            expect(eventPublisher.publishConfirmationEmail).toHaveBeenCalledWith({
+                email: 'user@example.com',
+                repo: 'nodejs/node',
+                confirmToken: 'confirm-token',
+                unsubscribeToken: 'unsub-token',
+                confirmUrl: 'http://localhost:3000/api/confirm/confirm-token',
+            });
+            expect(axios.post).not.toHaveBeenCalled();
+            expect(logger.info).toHaveBeenCalled();
+        });
+
+        it('should fall back to HTTP when queue returns null', async () => {
+            eventPublisher.publishConfirmationEmail.mockResolvedValue(null);
             axios.post.mockResolvedValue({ data: { success: true } });
 
             await notificationClient.sendConfirmationEmail(
@@ -39,10 +64,24 @@ describe('notificationClient', () => {
                 },
                 { timeout: 15000 },
             );
-            expect(logger.info).toHaveBeenCalled();
         });
 
-        it('should throw when notification service is unavailable', async () => {
+        it('should fall back to HTTP when queue publish throws', async () => {
+            eventPublisher.publishConfirmationEmail.mockRejectedValue(new Error('Redis down'));
+            axios.post.mockResolvedValue({ data: { success: true } });
+
+            await notificationClient.sendConfirmationEmail(
+                'user@example.com', 'nodejs/node', 'confirm-token', 'unsub-token',
+            );
+
+            expect(logger.warn).toHaveBeenCalledWith(
+                expect.stringContaining('falling back to HTTP'),
+            );
+            expect(axios.post).toHaveBeenCalled();
+        });
+
+        it('should throw when both queue and HTTP fail', async () => {
+            eventPublisher.publishConfirmationEmail.mockRejectedValue(new Error('Redis down'));
             axios.post.mockRejectedValue(new Error('ECONNREFUSED'));
 
             await expect(
@@ -54,15 +93,33 @@ describe('notificationClient', () => {
     });
 
     describe('sendReleaseNotification', () => {
-        it('should POST to notification service with correct payload', async () => {
-            axios.post.mockResolvedValue({ data: { success: true } });
+        const release = {
+            tag: 'v1.0.0',
+            name: 'Release 1',
+            url: 'https://github.com/nodejs/node/releases/tag/v1.0.0',
+            publishedAt: '2024-01-01',
+        };
 
-            const release = {
-                tag: 'v1.0.0',
-                name: 'Release 1',
-                url: 'https://github.com/nodejs/node/releases/tag/v1.0.0',
-                publishedAt: '2024-01-01',
-            };
+        it('should publish to queue when broker is available', async () => {
+            eventPublisher.publishReleaseNotification.mockResolvedValue({ id: 'job-2' });
+
+            await notificationClient.sendReleaseNotification(
+                'user@example.com', 'nodejs/node', release, 'unsub-token',
+            );
+
+            expect(eventPublisher.publishReleaseNotification).toHaveBeenCalledWith({
+                email: 'user@example.com',
+                repo: 'nodejs/node',
+                release,
+                unsubscribeToken: 'unsub-token',
+                unsubscribeUrl: 'http://localhost:3000/api/unsubscribe/unsub-token',
+            });
+            expect(axios.post).not.toHaveBeenCalled();
+        });
+
+        it('should fall back to HTTP when queue returns null', async () => {
+            eventPublisher.publishReleaseNotification.mockResolvedValue(null);
+            axios.post.mockResolvedValue({ data: { success: true } });
 
             await notificationClient.sendReleaseNotification(
                 'user@example.com', 'nodejs/node', release, 'unsub-token',
@@ -78,17 +135,15 @@ describe('notificationClient', () => {
                 },
                 { timeout: 15000 },
             );
-            expect(logger.info).toHaveBeenCalled();
         });
 
-        it('should swallow errors for release notifications', async () => {
+        it('should swallow errors when both queue and HTTP fail for release', async () => {
+            eventPublisher.publishReleaseNotification.mockRejectedValue(new Error('Redis down'));
             axios.post.mockRejectedValue(new Error('network error'));
 
             await expect(
                 notificationClient.sendReleaseNotification(
-                    'user@example.com', 'nodejs/node',
-                    { tag: 'v1.0.0', name: 'R1', url: 'http://gh', publishedAt: '2024-01-01' },
-                    'unsub-token',
+                    'user@example.com', 'nodejs/node', release, 'unsub-token',
                 ),
             ).resolves.toBeUndefined();
 

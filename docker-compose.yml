@@ -80,14 +80,18 @@ services:
 
   notification:
     build:
-      context: ./services/notification
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/notification/Dockerfile
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_started
     ports:
       - "3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
+      REDIS_URL: redis://redis:6379
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
@@ -135,7 +139,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      REDIS_URL: redis://redis:6379
       REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-5000}
       GITHUB_CACHE_TTL_SECONDS: ${GITHUB_CACHE_TTL_SECONDS:-600}
       NOTIFICATION_SERVICE_URL: http://notification:3001

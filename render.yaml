@@ -51,6 +51,11 @@ services:
         value: "GitHub Notificator <onboarding@resend.dev>"
       - key: RESEND_TIMEOUT_MS
         value: "10000"
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: notificator-redis
+          property: connectionString
 
   - type: web
     name: notificator
