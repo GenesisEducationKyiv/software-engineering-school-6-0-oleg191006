@@ -1,4 +1,4 @@
-const { query } = require('@/db/connection');
+const { query, getPool } = require('@/db/connection');
 const logger = require('@/utils/logger');
 
 const migrations = [
@@ -89,19 +89,24 @@ async function runMigrations() {
         }
 
         logger.info(`Applying migration v${migration.version}: ${migration.description}`);
-        await query('BEGIN');
+        const client = await getPool().connect();
         try {
-            await query(migration.sql);
-            await query(
+            await client.query('BEGIN');
+            await client.query(migration.sql);
+            await client.query(
                 'INSERT INTO _migrations (version, description) VALUES ($1, $2)',
                 [migration.version, migration.description],
             );
-            await query('COMMIT');
+            await client.query('COMMIT');
             logger.info(`Migration v${migration.version} applied successfully`);
         } catch (err) {
-            await query('ROLLBACK');
-            logger.error(`Migration v${migration.version} failed`, err);
+            await client.query('ROLLBACK');
+            logger.error(`Migration v${migration.version} failed`, {
+                error: err.stack || err.message,
+            });
             throw err;
+        } finally {
+            client.release();
         }
     }
 

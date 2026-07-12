@@ -41,7 +41,9 @@ async function main() {
         process.on('SIGTERM', () => shutdown('SIGTERM'));
         process.on('SIGINT', () => shutdown('SIGINT'));
     } catch (err) {
-        logger.error('Failed to start application', err);
+        logger.error('Failed to start application', {
+            error: err.stack || err.message,
+        });
         process.exit(1);
     }
 }
