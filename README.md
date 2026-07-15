@@ -22,11 +22,11 @@ A Node.js + Express service that lets users subscribe to GitHub repository relea
 
 Production deployment:
 
-- https://notificator-rxb1.onrender.com/
+https://notificator-production-c9bd.up.railway.app/
 
 Notes:
 
-- The app is hosted on Render.
+- The app is hosted on Railway.
 - API key protection can be enabled/disabled via `API_KEY` environment variable.
 - If `API_KEY` is set, API requests must include `X-API-Key`.
 
@@ -35,8 +35,6 @@ Notes:
 - Email sending is currently in test mode because no custom verified sending domain is configured.
 - In this mode, subscribe/unsubscribe email flow is effectively limited to the verified test inbox: `olegchaplia2006@gmail.com`.
 - To support subscriptions for any user email, a verified domain must be added in Resend and used in `RESEND_FROM`.
-- The Render free tier can put the service to sleep when idle.
-- Because of this, the first request after inactivity may take extra time while the service wakes up.
 
 ## Tech Stack
 
